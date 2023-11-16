@@ -205,3 +205,194 @@ return [
 ```
 
 You can continue to apply this to the rest of the language.
+
+## 4. Design and implement a translatable database
+
+Let's say you have normal tables for categories and posts with the following structure:
+
+```
+categories
+- id
+- name
+- slug
+
+posts
+- id
+- category_id
+- title
+- slug
+- content
+```
+
+I know that you can simply add a locale or language column in both tables, but that will cause inconsistency for the category_id. For example:
+
+```
+categories
+
+id: 1
+name: "News EN"
+slug: "news-en"
+locale: "en"
+
+id: 2
+name: "Nouvelles"
+slug: "nouvelles"
+locale: "fr"
+
+posts
+
+id: 1
+category_id: 1
+title: "Post English"
+slug: "post-english"
+locale: "en"
+content: "Content post in English"
+
+id: 2
+category_id: 2
+title: "Post France"
+slug: "post-france"
+locale: "fr"
+content: "Content post in France"
+```
+
+As you can see in the plain text above, both categories cover the same meaning, which is “News” but they have different IDs. If you change the category_id for “Post France” to 1, it will cause a problem because the France post is referenced to the English category.
+
+Let’s solve that problem by creating a third table for categories called category_translations and changing some columns in the categories table.
+
+```
+categories
+- id
+
+category_translations
+- id
+- category_id
+- name
+- slug
+```
+
+Implement new table structure:
+
+```
+categories
+
+id: 1
+```
+
+**category_translations**
+
+```
+id: 1
+category_id: 1
+name: "News EN"
+slug: "news-en"
+locale: "en"
+
+id: 2
+category_id: 1
+name: "Nouvelles"
+slug: "nouvelles"
+locale: "fr"
+```
+
+**posts**
+
+```
+id: 1
+category_id: 1
+title: "Post English"
+slug: "post-english"
+locale: "en"
+content: "Content post in English"
+
+id: 2
+category_id: 1
+title: "Post France"
+slug: "post-france"
+locale: "fr"
+content: "Content post in France"
+```
+
+Now both posts are referenced to the same ID and we can display the category in English or French.
+Let’s Code it in Laravel
+
+I will focus on how we take advantage of the Laravel Relationship for categories and category_translations.
+
+First, we define the migration files:
+
+```
+php artisan make:migration create_categories_table
+
+Schema::create('categories', function (Blueprint $table) {
+    $table->id();
+    $table->timestamps();
+});
+
+php artisan make:migration create_category_translations_table
+
+Schema::create('category_translations', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('category_id');
+    $table->string('name');
+    $table->string('slug');
+    $table->string('locale');
+    $table->timestamps();
+});
+```
+
+If you don’t know how to make a migration, check out this documentation.
+
+Now, let’s create our models:
+
+```
+php artisan make:model Category
+
+php artisan make:model CategoryTranslation
+```
+
+We will give our Category model access to the CategoryTranslation by creating a relationship:
+
+```
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Category extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'id',
+    ];
+
+    public function translations()
+    {
+        return $this->hasMany(CategoryTranslation::class);
+    }
+
+    public function en()
+    {
+        return $this->hasOne(CategoryTranslation::class)->where('locale', 'en');
+    }
+
+    public function fr()
+    {
+        return $this->hasOne(CategoryTranslation::class)->where('locale', 'fr');
+    }
+
+    public function pt()
+    {
+        return $this->hasOne(CategoryTranslation::class)->where('locale', 'pt');
+    }
+
+    public function jp()
+    {
+        return $this->hasOne(CategoryTranslation::class)->where('locale', 'jp');
+    }
+}
+```
+
+In the code above, when you select a single category, you can access the English version of the category using $category->en as well as other versions like $category->fr, $category->jp, etc
