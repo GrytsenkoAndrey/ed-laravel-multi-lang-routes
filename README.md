@@ -397,9 +397,12 @@ class Category extends Model
 
 In the code above, when you select a single category, you can access the English version of the category using **$category->en** as well as other versions like **$category->fr, $category->jp,** etc
 
+
 ![image](https://github.com/GrytsenkoAndrey/ed-laravel-multi-lang-routes/assets/63291871/aac257b5-b70f-4f9c-a5ed-dc66fa25acad)
 
+
 And you can also be able to access the whole version of the category translations using **$category->translations.**
+
 
 ![image](https://github.com/GrytsenkoAndrey/ed-laravel-multi-lang-routes/assets/63291871/14db1516-cee0-4075-aa90-bf377fc13e4a)
 
